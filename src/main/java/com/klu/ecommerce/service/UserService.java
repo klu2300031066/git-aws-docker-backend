@@ -5,6 +5,9 @@ import com.klu.ecommerce.repository.UserRepository;
 import com.klu.ecommerce.security.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -19,23 +22,39 @@ public class UserService {
         this.jwtUtil = jwtUtil;
     }
 
-    public String registerUser(String username, String email, String password) {
+    public Map<String, String> registerUser(String username, String email, String password) {
+        Map<String, String> response = new HashMap<>();
+
         if (userRepository.findByUsername(username).isPresent() || userRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("User already exists!");
+            response.put("status", "error");
+            response.put("message", "User already exists!");
+            return response;
         }
+
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
         userRepository.save(user);
-        return "User registered successfully!";
+
+        response.put("status", "success");
+        response.put("message", "User registered successfully!");
+        return response;
     }
 
-    public String loginUser(String username, String password) {
+    public Map<String, String> loginUser(String username, String password) {
+        Map<String, String> response = new HashMap<>();
+
         Optional<User> userOptional = userRepository.findByUsername(username);
         if (userOptional.isEmpty() || !passwordEncoder.matches(password, userOptional.get().getPassword())) {
-            throw new RuntimeException("Invalid username or password");
+            response.put("status", "error");
+            response.put("message", "Invalid username or password");
+            return response;
         }
-        return jwtUtil.generateToken(username);
+
+        String token = jwtUtil.generateToken(username);
+        response.put("status", "success");
+        response.put("token", token);
+        return response;
     }
 }
